@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalogador Padrão Quântico - Cloud Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loader {
+            border-top-color: #3498db;
+            animation: spinner 1.5s linear infinite;
+        }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen">
+
+    <div class="container mx-auto px-4 py-8">
+        <header class="flex justify-between items-center border-b border-slate-800 pb-6 mb-8">
+            <div>
+                <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                    QUANT-BOT CLOUD
+                </h1>
+                <p class="text-sm text-slate-400">Servidor ativo em segundo plano (PythonAnywhere)</p>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-900 px-4 py-2 rounded-full border border-slate-700">
+                <div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" id="dot-status"></div>
+                <span class="text-xs font-semibold uppercase tracking-wider" id="text-status">Sincronizado via Nuvem</span>
+            </div>
+        </header>
+
+        <div id="loading-area" class="flex flex-col items-center justify-center my-20">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-800 h-12 w-12 mb-4"></div>
+            <p class="text-slate-400 text-sm animate-pulse">Buscando catálogos probabilísticos na nuvem...</p>
+        </div>
+
+        <div id="dashboard" class="hidden space-y-6">
+            <div class="bg-gradient-to-r from-slate-900 to-blue-950 p-6 rounded-2xl border border-blue-500/30 shadow-xl">
+                <h2 class="text-xs font-bold text-blue-400 uppercase tracking-widest mb-2">Próxima Entrada Identificada</h2>
+                <div id="sinal-principal" class="grid grid-cols-2 md:grid-cols-5 gap-4 items-center"></div>
+            </div>
+
+            <div>
+                <h3 class="text-xl font-bold mb-4 text-slate-300">Histórico da Sessão Atual (Limpo ao abrir)</h3>
+                <div class="overflow-x-auto bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl">
+                    <table class="min-w-full divide-y divide-slate-800">
+                        <thead class="bg-slate-950/60">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Ativo</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Horário</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Operação</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Timeframe</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Assertividade</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Padrão Mais Respeitado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historico-tabela" class="divide-y divide-slate-800"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SEU LINK DO PYTHONANYWHERE AQUI:
+        const API_URL = "http://seu_usuario.pythonanywhere.com/api/sinal"; 
+        
+        let ultimoHorarioSinal = "";
+
+        // Limpa a tela na inicialização
+        document.getElementById('historico-tabela').innerHTML = '';
+
+        async function buscarSinalServidor() {
+            try {
+                const response = await fetch(API_URL);
+                const sinal = await response.json();
+
+                if (sinal.status === "sucesso") {
+                    // Remove animação de carregamento
+                    document.getElementById('loading-area').classList.add('hidden');
+                    document.getElementById('dashboard').classList.remove('hidden');
+
+                    // Só atualiza a tela se for um sinal com horário inédito
+                    if (sinal.horario !== ultimoHorarioSinal) {
+                        ultimoHorarioSinal = sinal.horario;
+                        renderizarNovoSinal(sinal);
+                    }
+                }
+            } catch (erro) {
+                console.error("Erro ao buscar dados na nuvem:", erro);
+                document.getElementById('text-status').innerText = "Erro de Conexão";
+                document.getElementById('dot-status').className = "w-3 h-3 bg-rose-500 rounded-full";
+            }
+        }
+
+        function renderizarNovoSinal(sinal) {
+            const direcaoCor = sinal.direcao === 'CALL' ? 'text-emerald-400 bg-emerald-950/50 border-emerald-500/40' : 'text-rose-400 bg-rose-950/50 border-rose-500/40';
+            
+            document.getElementById('sinal-principal').innerHTML = `
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <span class="block text-xs text-slate-500">ATIVO</span>
+                    <span class="text-xl font-bold">${sinal.ativo}</span>
+                    <span class="block text-[10px] text-cyan-400 font-mono">${sinal.tipo}</span>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <span class="block text-xs text-slate-500">HORÁRIO DA ENTRADA</span>
+                    <span class="text-xl font-bold text-amber-400 font-mono">${sinal.horario}</span>
+                </div>
+                <div class="p-4 rounded-xl border ${direcaoCor} text-center">
+                    <span class="block text-xs opacity-70">AÇÃO</span>
+                    <span class="text-2xl font-black">${sinal.direcao}</span>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <span class="block text-xs text-slate-500">TEMPO GRÁFICO</span>
+                    <span class="text-xl font-bold text-indigo-400">${sinal.timeframe}</span>
+                </div>
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <span class="block text-xs text-slate-500">PROBABILIDADE</span>
+                    <span class="text-xl font-bold text-emerald-400">${sinal.assertividade}</span>
+                    <span class="block text-[10px] text-slate-400">Repetições: ${sinal.repeticoes}x</span>
+                </div>
+                <div class="col-span-2 md:col-span-5 bg-slate-950/40 p-3 rounded-lg text-xs text-slate-400 border border-slate-800/60 mt-2">
+                    <strong>Análise estrutural dos candles anteriores:</strong> ${sinal.analise_texto}
+                </div>
+            `;
+
+            // Adiciona na tabela de histórico da página aberta
+            const tabela = document.getElementById('historico-tabela');
+            const novaLinha = document.createElement('tr');
+            const badgeDirecao = sinal.direcao === 'CALL' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+
+            novaLinha.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">${sinal.ativo}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-300">${sinal.horario}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2.5 py-1 rounded-md text-xs font-bold ${badgeDirecao}">${sinal.direcao}</span></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-indigo-400 font-semibold">${sinal.timeframe}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-emerald-400 font-bold">${sinal.assertividade}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-400">${sinal.padrao}</td>
+            `;
+            tabela.insertBefore(novaLinha, tabela.firstChild);
+        }
+
+        // Executa imediatamente ao abrir e depois repete a cada 5 segundos buscando atualizações
+        buscarSinalServidor();
+        setInterval(buscarSinalServidor, 5000);
+    </script>
+</body>
+</html>
