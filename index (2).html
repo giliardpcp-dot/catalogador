@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalogador Estatístico Multiativos</title>
+    <style>
+        :root {
+            --bg-principal: #0b0f19;
+            --bg-card: #151d30;
+            --bg-input: #1f2a45;
+            --texto-claro: #f1f5f9;
+            --texto-mutado: #64748b;
+            --azul-accent: #0ea5e9;
+            --azul-hover: #0284c7;
+            --verde-call: #10b981;
+            --vermelho-put: #f43f5e;
+            --borda: #243354;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background-color: var(--bg-principal); color: var(--texto-claro); padding: 24px; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid var(--borda); margin-bottom: 32px; }
+        header h1 { font-size: 24px; font-weight: 700; }
+        header h1 span { color: var(--azul-accent); }
+
+        .status-container { display: flex; align-items: center; gap: 8px; background-color: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); padding: 6px 14px; border-radius: 50px; font-size: 13px; font-weight: 600; color: var(--verde-call); }
+        .ponto-status { width: 8px; height: 8px; background-color: var(--verde-call); border-radius: 50%; }
+
+        .Painel-filtros { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; background-color: var(--bg-card); padding: 24px; border-radius: 12px; border: 1px solid var(--borda); margin-bottom: 32px; align-items: flex-end; }
+        .campo-grupo { display: flex; flex-direction: column; gap: 8px; }
+        .campo-grupo label { font-size: 13px; color: var(--texto-mutado); font-weight: 600; text-transform: uppercase; }
+        .campo-grupo input, .campo-grupo select { background-color: var(--bg-input); border: 1px solid var(--borda); color: var(--texto-claro); padding: 12px; border-radius: 8px; font-size: 15px; outline: none; }
+
+        .btn-enviar { background-color: var(--azul-accent); color: #ffffff; border: none; padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; height: 46px; }
+        .btn-enviar:hover { background-color: var(--azul-hover); }
+
+        .painel-resultados { background-color: var(--bg-card); border-radius: 12px; border: 1px solid var(--borda); overflow: hidden; }
+        .topo-tabela { padding: 20px 24px; border-bottom: 1px solid var(--borda); display: flex; justify-content: space-between; align-items: center; }
+        .contador-badge { font-size: 13px; color: var(--texto-mutado); background-color: var(--bg-input); padding: 4px 10px; border-radius: 6px; }
+        
+        .tabela-responsiva { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background-color: rgba(11, 15, 25, 0.4); color: var(--texto-mutado); padding: 16px 24px; font-size: 13px; text-transform: uppercase; }
+        td { padding: 16px 24px; border-bottom: 1px solid var(--borda); font-size: 15px; }
+
+        .direcao-sinal { padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 12px; display: inline-block; }
+        .direcao-sinal.call { background-color: rgba(16, 185, 129, 0.15); color: var(--verde-call); border: 1px solid rgba(16, 185, 129, 0.2); }
+        .direcao-sinal.put { background-color: rgba(244, 63, 94, 0.15); color: var(--vermelho-put); border: 1px solid rgba(244, 63, 94, 0.2); }
+        .porcentagem-assertividade { font-weight: 700; color: var(--azul-accent); }
+
+        .carregando { display: none; text-align: center; padding: 60px 24px; color: var(--texto-mutado); }
+        .spinner { width: 40px; height: 40px; border: 3px solid var(--borda); border-top-color: var(--azul-accent); border-radius: 50%; margin: 0 auto 16px auto; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div>
+            <h1>Catalogador <span>Pro</span></h1>
+            <p style="color: var(--texto-mutado); font-size: 14px; margin-top: 4px;">Análise probabilística em nuvem gratuita</p>
+        </div>
+        <div class="status-container"><div class="ponto-status"></div><span>Nuvem Ativa</span></div>
+    </header>
+
+    <div class="Painel-filtros">
+        <div class="campo-grupo">
+            <label for="input-dias">Dias para Analisar</label>
+            <input type="number" id="input-dias" value="30">
+        </div>
+        <div class="campo-grupo">
+            <label for="select-timeframe">Tempo de Vela</label>
+            <select id="select-timeframe">
+                <option value="M1">1 Minuto (M1)</option>
+                <option value="M2">2 Minutos (M2)</option>
+                <option value="M3">3 Minutos (M3)</option>
+                <option value="M5" selected>5 Minutos (M5)</option>
+            </select>
+        </div>
+        <div class="campo-grupo">
+            <label for="input-minimo">Assertividade Mínima (%)</label>
+            <input type="number" id="input-minimo" value="80">
+        </div>
+        <button class="btn-enviar" onclick="requisitarSinais()">Executar Catalogação</button>
+    </div>
+
+    <div class="painel-resultados">
+        <div class="topo-tabela">
+            <h2>Melhores Sinais Encontrados</h2>
+            <span class="contador-badge" id="txt-contador">Aguardando comando...</span>
+        </div>
+        
+        <div class="carregando" id="elemento-loading">
+            <div class="spinner"></div>
+            <p>O Python na nuvem está processando os dados históricos... Aguarde.</p>
+        </div>
+
+        <div class="tabela-responsiva" id="container-tabela">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Par de Ativo</th>
+                        <th>Horário</th>
+                        <th>Timeframe</th>
+                        <th>Direção</th>
+                        <th>Sinal (V/D)</th>
+                        <th>Assertividade</th>
+                    </tr>
+                </thead>
+                <tbody id="corpo-tabela-sinais">
+                    <tr><td colspan="6" style="text-align: center; color: var(--texto-mutado); padding: 40px;">Clique para buscar os dados em tempo real.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ATENÇÃO: Substitua 'seu_usuario_aqui' pelo seu nome de usuário do PythonAnywhere
+    const API_URL = 'https://seu_usuario_aqui.pythonanywhere.com/api/catalogar';
+
+    async function requisitarSinais() {
+        const dias = document.getElementById('input-dias').value;
+        const timeframe = document.getElementById('select-timeframe').value;
+        const minAssert = document.getElementById('input-minimo').value;
+
+        const loading = document.getElementById('elemento-loading');
+        const tabela = document.getElementById('container-tabela');
+        const corpoTabela = document.getElementById('corpo-tabela-sinais');
+        const txtContador = document.getElementById('txt-contador');
+
+        tabela.style.display = 'none';
+        loading.style.display = 'block';
+
+        try {
+            const urlCompleta = `${API_URL}?dias=${dias}&timeframe=${timeframe}&minimo=${minAssert}`;
+            const resposta = await fetch(urlCompleta);
+            if (!resposta.ok) throw new Error('Erro na API');
+            
+            const listaSinais = await resposta.json();
+            corpoTabela.innerHTML = '';
+            
+            if (listaSinais.length === 0) {
+                corpoTabela.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--texto-mutado); padding: 40px;">Nenhum sinal com mais de ${minAssert}% encontrado.</td></tr>`;
+                txtContador.innerText = '0 sinais';
+            } else {
+                listaSinais.forEach(sinal => {
+                    const badgeClass = sinal.operacao.toLowerCase() === 'call' ? 'call' : 'put';
+                    const labelOp = sinal.operacao === 'call' ? 'CALL (COMPRA)' : 'PUT (VENDA)';
+                    corpoTabela.innerHTML += `<tr>
+                        <td><b>${sinal.ativo}</b></td>
+                        <td>${sinal.horario}</td>
+                        <td>${sinal.timeframe}</td>
+                        <td><span class="direcao-sinal ${badgeClass}">${labelOp}</span></td>
+                        <td>${sinal.vitorias} / ${sinal.derrotas}</td>
+                        <td class="porcentagem-assertividade">${sinal.assertividade}%</td>
+                    </tr>`;
+                });
+                txtContador.innerText = `${listaSinais.length} sinais encontrados`;
+            }
+        } catch (erro) {
+            corpoTabela.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--vermelho-put); padding: 40px;"><b>Erro:</b> Servidor offline ou URL incorreta.</td></tr>`;
+        } finally {
+            loading.style.display = 'none';
+            tabela.style.display = 'block';
+        }
+    }
+</script>
+</body>
+</html>
